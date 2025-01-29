@@ -4,36 +4,63 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"io"
+	"log"
 	"net/http"
 )
 
-type requestBody struct {
-	Message string `json:"message"`
+func GetMessage(w http.ResponseWriter, req *http.Request) {
+	var messages []Message
+	result := DB.Find(&messages)
+	if result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		log.Println("Error getting messages from DB:", result.Error)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(messages); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println("Error encoding json:", err)
+		return
+	}
 }
-
-var message string
-
-func HelloHendler(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Hello, %s!", message)
-}
-func PostHendler(w http.ResponseWriter, req *http.Request) {
-
-	var r requestBody
-
-	err := json.NewDecoder(req.Body).Decode(&r)
+func CreateMessage(w http.ResponseWriter, req *http.Request) {
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		log.Println("Error reading request body: ", err)
+		return
+	}
+	defer req.Body.Close()
+	var message Message
+	if err := json.Unmarshal(body, &message); err != nil {
+		http.Error(w, "Error decoding JSON", http.StatusBadRequest)
+		log.Println("Error decoding JSON: ", err)
+		return
+	}
+	log.Println("Received: ", message)
+	fmt.Println("Task: ", message.Task)
+	fmt.Println("IsDone: ", message.IsDone)
+
+	result := DB.Create(&message)
+	if result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		log.Println("Error creating data in DB: ", result.Error)
 		return
 	}
 
-	message = r.Message
 	w.WriteHeader(http.StatusCreated)
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, "Message: %s", message)
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{"message": "Data created successfully!"}
+	json.NewEncoder(w).Encode(response)
 }
+
 func main() {
+	InitDB()
+	DB.AutoMigrate(&Message{})
+
 	router := mux.NewRouter()
-	router.HandleFunc("/messagep", PostHendler).Methods("POST")
-	router.HandleFunc("/messageg", HelloHendler).Methods("GET")
-	http.ListenAndServe(":8000", router)
+	router.HandleFunc("/api/messages", CreateMessage).Methods("POST")
+	router.HandleFunc("/api/messages", GetMessage).Methods("GET")
+	http.ListenAndServe(":8080", router)
 }
