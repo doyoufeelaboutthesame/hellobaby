@@ -9,7 +9,7 @@ import (
 var Db *gorm.DB
 
 func InitDB() {
-	dsn := "host=localhost user=postgres password=yourpassword dbname=postgres port=5432 sslmode=disable"
+	dsn := "host=localhost user=postgres password=yourpassword dbname=main port=5432 sslmode=disable"
 	var err error
 	Db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		//Logger: logger.Default.LogMode(logger.Info),
