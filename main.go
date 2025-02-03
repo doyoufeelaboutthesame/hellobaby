@@ -12,7 +12,10 @@ import (
 
 func main() {
 	database.InitDB()
-	database.Db.AutoMigrate(&taskService.Task{})
+	err := database.Db.AutoMigrate(&taskService.Task{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	repo := taskService.NewTaskRepository(database.Db)
 	service := taskService.NewService(repo)

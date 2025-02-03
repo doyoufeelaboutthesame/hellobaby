@@ -15,3 +15,6 @@ run:
 
 gen:
 	powershell -Command "oapi-codegen -config openapi/.openapi -include-tags tasks -package tasks openapi/openapi.yaml | Out-File -Encoding UTF8 ./internal/web/tasks/api.gen.go"
+
+lint:
+	golangci-lint run --out-format=colored-line-number
