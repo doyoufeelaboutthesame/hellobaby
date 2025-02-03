@@ -4,8 +4,10 @@ import (
 	"FirstProject/internal/database"
 	"FirstProject/internal/handlers"
 	"FirstProject/internal/taskService"
-	"github.com/gorilla/mux"
-	"net/http"
+	"FirstProject/internal/web/tasks"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"log"
 )
 
 func main() {
@@ -17,10 +19,15 @@ func main() {
 
 	handler := handlers.NewHandler(service)
 
-	router := mux.NewRouter()
-	router.HandleFunc("/api", handler.GetTasksHandler).Methods("GET")
-	router.HandleFunc("/api", handler.PostTaskHandler).Methods("POST")
-	router.HandleFunc("/api/{id}", handler.PatchTaskHandler).Methods("PATCH")
-	router.HandleFunc("/api/{id}", handler.DeleteTaskHandler).Methods("DELETE")
-	http.ListenAndServe(":8080", router)
+	e := echo.New()
+
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	strictHandler := tasks.NewStrictHandler(handler, nil)
+	tasks.RegisterHandlers(e, strictHandler)
+
+	if err := e.Start(":8000"); err != nil {
+		log.Fatalf("failed to start with err: %v", err)
+	}
 }
