@@ -4,7 +4,9 @@ import (
 	"FirstProject/internal/database"
 	"FirstProject/internal/handlers"
 	"FirstProject/internal/taskService"
+	"FirstProject/internal/userService"
 	"FirstProject/internal/web/tasks"
+	"FirstProject/internal/web/users"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"log"
@@ -31,6 +33,28 @@ func main() {
 	tasks.RegisterHandlers(e, strictHandler)
 
 	if err := e.Start(":8000"); err != nil {
+		log.Fatalf("failed to start with err: %v", err)
+	}
+	//===========================================================================
+	uerr := database.Db.AutoMigrate(&userService.Users{})
+	if uerr != nil {
+		log.Fatal(uerr)
+	}
+
+	urepo := userService.NewUserRepository(database.Db)
+	uservice := userService.NewUserService(urepo)
+
+	uhandler := handlers.NewUserHandler(uservice)
+
+	ue := echo.New()
+
+	ue.Use(middleware.Logger())
+	ue.Use(middleware.Recover())
+
+	ustrictHandler := users.NewStrictHandler(uhandler, nil)
+	users.RegisterHandlers(ue, ustrictHandler)
+
+	if err := ue.Start(":8000"); err != nil {
 		log.Fatalf("failed to start with err: %v", err)
 	}
 }
