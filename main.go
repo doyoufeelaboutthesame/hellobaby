@@ -24,17 +24,6 @@ func main() {
 
 	handler := handlers.NewHandler(service)
 
-	e := echo.New()
-
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
-	strictHandler := tasks.NewStrictHandler(handler, nil)
-	tasks.RegisterHandlers(e, strictHandler)
-
-	if err := e.Start(":8000"); err != nil {
-		log.Fatalf("failed to start with err: %v", err)
-	}
 	//===========================================================================
 	uerr := database.Db.AutoMigrate(&userService.Users{})
 	if uerr != nil {
@@ -46,10 +35,16 @@ func main() {
 
 	uhandler := handlers.NewUserHandler(uservice)
 
+	//===========================================================================
 	ue := echo.New()
 
 	ue.Use(middleware.Logger())
 	ue.Use(middleware.Recover())
+	ue.Use(middleware.Logger())
+	ue.Use(middleware.Recover())
+
+	strictHandler := tasks.NewStrictHandler(handler, nil)
+	tasks.RegisterHandlers(ue, strictHandler)
 
 	ustrictHandler := users.NewStrictHandler(uhandler, nil)
 	users.RegisterHandlers(ue, ustrictHandler)
